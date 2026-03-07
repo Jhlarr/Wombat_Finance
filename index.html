@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0c0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StockTerm">
+<title>StockTerm — Market Monitor</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+/* ── FONTS (self-contained, no Google Fonts call) ── */
+@import url('data:text/css,');
+
+/* IBM Plex Mono subset via system monospace fallback + custom stack */
+:root {
+  --font-mono: 'Courier New', 'Lucida Console', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --bg:#0a0c0f; --surface:#111318; --surface2:#161a22; --surface3:#1a1f28;
+  --border:#1e2229; --border-bright:#2a3040;
+  --green:#00e676; --green-dim:#00c85320;
+  --red:#ff3d57; --red-dim:#ff3d5720;
+  --amber:#ffc107; --amber-dim:#ffc10718;
+  --text:#e8ecf0; --text-dim:#556070; --text-mid:#8899aa;
+  --accent:#4488ff; --accent-dim:#4488ff18;
+  --purple:#b57bff; --purple-dim:#b57bff15;
+  --teal:#00bcd4; --teal-dim:#00bcd415;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:13px;display:flex;flex-direction:column;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.02) 2px,rgba(0,0,0,0.02) 4px);pointer-events:none;z-index:9999;}
+
+/* INSTALL BANNER */
+#installBanner{background:var(--purple-dim);border-bottom:1px solid var(--purple);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+#installBanner.hidden{display:none;}
+.install-text{font-size:11px;color:var(--purple);letter-spacing:0.05em;}
+
+/* HEADER */
+.header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-mark{width:30px;height:30px;border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--accent);position:relative;}
+.logo-mark::before{content:'';position:absolute;inset:3px;background:var(--accent-dim);}
+.logo-text{font-size:14px;font-weight:500;letter-spacing:0.12em;}
+.logo-sub{font-size:9px;color:var(--text-dim);letter-spacing:0.2em;text-transform:uppercase;margin-top:1px;}
+.header-right{text-align:right;}
+.clock{font-size:16px;font-weight:300;letter-spacing:0.05em;}
+.date{font-size:9px;color:var(--text-dim);letter-spacing:0.12em;margin-top:2px;}
+
+/* SECURITY BADGE */
+.security-badge{display:inline-flex;align-items:center;gap:5px;font-size:9px;color:var(--green);letter-spacing:0.08em;padding:3px 8px;border:1px solid var(--green-dim);background:var(--green-dim);}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{padding:10px 18px;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;color:var(--text-dim);border:none;background:none;font-family:var(--font-mono);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
+.tab:hover{color:var(--text-mid);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab.market-tab.active{color:var(--teal);border-bottom-color:var(--teal);}
+.tab.intel-tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+.tab-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--red);color:#000;border-radius:50%;width:15px;height:15px;font-size:8px;font-weight:600;margin-left:5px;vertical-align:middle;}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:20px;}
+.panel{display:none;} .panel.active{display:block;}
+
+/* BUTTONS */
+.btn{background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-family:var(--font-mono);font-size:10px;letter-spacing:0.15em;padding:8px 16px;cursor:pointer;text-transform:uppercase;transition:all 0.15s;white-space:nowrap;}
+.btn:hover{background:var(--accent);color:#000;}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+.btn.secondary{background:transparent;border-color:var(--border-bright);color:var(--text-mid);}
+.btn.secondary:hover{border-color:var(--amber);color:var(--amber);background:transparent;}
+.btn.danger{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+.btn.danger:hover{background:var(--red);color:#fff;}
+.btn.teal-btn{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);}
+.btn.teal-btn:hover{background:var(--teal);color:#000;}
+.btn.intel-btn{background:var(--purple-dim);border-color:var(--purple);color:var(--purple);}
+.btn.intel-btn:hover{background:var(--purple);color:#000;}
+
+/* BANNERS */
+.banner{padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;font-size:11px;}
+.banner.info{background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);}
+.banner.warn{background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);}
+.banner.success{background:var(--green-dim);border:1px solid var(--green);color:var(--green);}
+.banner.hidden{display:none;}
+.banner-text{flex:1;}
+
+/* ADD BAR */
+.add-bar{display:flex;gap:8px;margin-bottom:16px;}
+.input-wrap{flex:1;position:relative;}
+.ticker-input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:13px;padding:9px 12px 9px 34px;outline:none;letter-spacing:0.06em;text-transform:uppercase;transition:border-color 0.2s;}
+.ticker-input::placeholder{color:var(--text-dim);text-transform:none;}
+.ticker-input:focus{border-color:var(--accent);}
+.input-prefix{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:10px;pointer-events:none;}
+
+/* REFRESH BAR */
+.refresh-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);font-size:10px;}
+.refresh-label{color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase;}
+.refresh-select{background:var(--bg);border:1px solid var(--border-bright);color:var(--text-mid);font-family:var(--font-mono);font-size:10px;padding:3px 7px;outline:none;cursor:pointer;}
+.refresh-select:focus{border-color:var(--accent);}
+.refresh-countdown{font-size:10px;color:var(--text-dim);margin-left:auto;}
+.refresh-countdown span{color:var(--amber);}
+
+/* QUOTA BAR */
+.quota-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:7px 12px;background:var(--surface2);border:1px solid var(--border);font-size:10px;color:var(--text-dim);}
+.quota-track{flex:1;height:4px;background:var(--border-bright);}
+.quota-fill{height:100%;background:var(--green);transition:width 0.3s;}
+.quota-fill.warn{background:var(--amber);}
+.quota-fill.danger{background:var(--red);}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;min-width:680px;}
+thead tr{border-bottom:1px solid var(--border-bright);}
+th{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-dim);font-weight:500;padding:7px 10px;text-align:right;white-space:nowrap;}
+th:first-child{text-align:left;}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;animation:rowIn 0.3s ease forwards;opacity:0;}
+@keyframes rowIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+tbody tr:hover{background:#ffffff06;}
+td{padding:11px 10px;text-align:right;vertical-align:middle;white-space:nowrap;}
+td:first-child{text-align:left;}
+.ticker-cell{display:flex;align-items:center;gap:7px;}
+.ticker-sym{font-size:13px;font-weight:600;letter-spacing:0.04em;}
+.ticker-name{font-size:9px;color:var(--text-dim);font-family:var(--font-sans);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.exchange-badge{font-size:7px;letter-spacing:0.1em;padding:2px 4px;border:1px solid var(--border-bright);color:var(--text-dim);flex-shrink:0;}
+.exchange-badge.asx{border-color:#00e67640;color:#00e67680;}
+.exchange-badge.us{border-color:#4488ff40;color:#4488ff80;}
+.price-cell{font-size:14px;font-weight:500;}
+.change-cell{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;font-size:10px;font-weight:500;}
+.change-cell.up{color:var(--green);background:var(--green-dim);}
+.change-cell.down{color:var(--red);background:var(--red-dim);}
+.change-cell.flat{color:var(--text-dim);}
+.sentiment{display:inline-flex;align-items:center;padding:2px 6px;font-size:9px;font-weight:600;letter-spacing:0.06em;border:1px solid;}
+.sentiment.bullish{color:var(--green);border-color:var(--green);background:var(--green-dim);}
+.sentiment.bearish{color:var(--red);border-color:var(--red);background:var(--red-dim);}
+.sentiment.neutral{color:var(--amber);border-color:var(--amber);background:var(--amber-dim);}
+.alert-dot{width:5px;height:5px;border-radius:50%;background:var(--border-bright);display:inline-block;margin-right:4px;}
+.alert-dot.active{background:var(--amber);box-shadow:0 0 5px var(--amber);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 3px var(--amber)}50%{box-shadow:0 0 8px var(--amber)}}
+.action-cell{display:flex;align-items:center;justify-content:flex-end;gap:3px;}
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--text-dim);font-size:12px;padding:3px 5px;transition:color 0.15s;font-family:monospace;line-height:1;}
+.icon-btn:hover{color:var(--text);}
+.icon-btn.alert-active{color:var(--amber);}
+.skeleton{display:inline-block;background:linear-gradient(90deg,var(--border) 25%,var(--border-bright) 50%,var(--border) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:2px;height:12px;}
+@keyframes shimmer{to{background-position:-200% 0}}
+.last-updated{font-size:8px;color:var(--text-dim);}
+
+/* MARKET DATA */
+.market-section{margin-bottom:24px;}
+.market-section-title{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.market-section-time{font-size:8px;color:var(--text-dim);}
+.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+.market-card{background:var(--surface);border:1px solid var(--border);padding:12px;transition:border-color 0.2s;}
+.market-card:hover{border-color:var(--border-bright);}
+.market-card-label{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;}
+.market-card-value{font-size:17px;font-weight:500;letter-spacing:0.02em;margin-bottom:3px;}
+.market-card-value.na{font-size:13px;color:var(--text-dim);}
+.market-card-change{font-size:10px;display:flex;align-items:center;gap:3px;}
+.market-card-change.up{color:var(--green);}
+.market-card-change.down{color:var(--red);}
+.market-card-change.flat{color:var(--text-dim);}
+.market-card-sub{font-size:9px;color:var(--text-dim);margin-top:2px;}
+.fg-card{background:var(--surface);border:1px solid var(--border);padding:16px;display:flex;align-items:center;gap:16px;margin-bottom:10px;}
+.fg-gauge{width:64px;height:64px;position:relative;flex-shrink:0;}
+.fg-gauge svg{transform:rotate(-90deg);}
+.fg-score{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;}
+.fg-label{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;}
+.fg-value{font-size:16px;font-weight:600;margin-bottom:2px;}
+.fg-sub{font-size:9px;color:var(--text-dim);}
+
+/* INTELLIGENCE */
+.intel-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
+.intel-title{font-size:13px;font-weight:600;letter-spacing:0.1em;color:var(--purple);}
+.intel-subtitle{font-size:9px;color:var(--text-dim);margin-top:3px;}
+.intel-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.intel-last-run{font-size:9px;color:var(--text-dim);}
+.intel-last-run span{color:var(--purple);}
+.api-key-row{display:flex;gap:8px;margin-bottom:8px;}
+.api-key-input{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:11px;padding:8px 12px;outline:none;transition:border-color 0.2s;}
+.api-key-input:focus{border-color:var(--purple);}
+.api-key-input::placeholder{color:var(--text-dim);}
+.api-key-hint{font-size:9px;color:var(--text-dim);margin-bottom:14px;line-height:1.6;}
+.api-key-hint a{color:var(--purple);}
+.macro-briefing{background:var(--surface);border:1px solid var(--border-bright);border-left:3px solid var(--purple);padding:16px;margin-bottom:16px;animation:rowIn 0.4s ease forwards;opacity:0;}
+.macro-briefing-title{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--purple);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.macro-briefing-title::after{content:'';flex:1;height:1px;background:var(--border-bright);}
+.macro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px;}
+.macro-card{background:var(--surface2);border:1px solid var(--border);padding:12px;}
+.macro-card-label{font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;}
+.macro-card-content{font-size:11px;color:var(--text-mid);line-height:1.7;font-family:var(--font-sans);}
+.macro-card-content strong{color:var(--text);font-family:var(--font-mono);font-size:10px;}
+.intel-cards{display:flex;flex-direction:column;gap:12px;}
+.intel-card{background:var(--surface);border:1px solid var(--border);animation:rowIn 0.35s ease forwards;opacity:0;}
+.intel-card-header{padding:12px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;flex-wrap:wrap;}
+.intel-card-header:hover{background:#ffffff04;}
+.intel-card-sym{font-size:13px;font-weight:600;min-width:70px;}
+.intel-card-name{font-size:10px;color:var(--text-dim);flex:1;font-family:var(--font-sans);}
+.intel-card-chevron{color:var(--text-dim);font-size:11px;transition:transform 0.2s;margin-left:auto;flex-shrink:0;}
+.intel-card.expanded .intel-card-chevron{transform:rotate(180deg);}
+.intel-card-body{display:none;padding:14px;}
+.intel-card.expanded .intel-card-body{display:block;}
+.verdict-bar{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap;}
+.verdict-label{font-size:9px;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;}
+.verdict-action{font-size:12px;font-weight:600;letter-spacing:0.1em;}
+.verdict-action.buy{color:var(--green);}.verdict-action.hold{color:var(--amber);}
+.verdict-action.sell{color:var(--red);}.verdict-action.accumulate{color:var(--teal);}
+.verdict-confidence{font-size:9px;color:var(--text-dim);margin-left:auto;}
+.intel-section{margin-bottom:14px;}
+.intel-section-title{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.intel-section-content{font-size:11px;color:var(--text-mid);line-height:1.75;font-family:var(--font-sans);}
+.opp-risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.opp-box{padding:10px;background:var(--green-dim);border:1px solid #00e67628;}
+.risk-box{padding:10px;background:var(--red-dim);border:1px solid #ff3d5728;}
+.opp-box-title{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--green);margin-bottom:5px;}
+.risk-box-title{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);margin-bottom:5px;}
+.opp-box-content,.risk-box-content{font-size:10px;color:var(--text-mid);font-family:var(--font-sans);line-height:1.65;}
+.life-tips{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--teal);padding:12px;}
+.life-tips-title{font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
+.life-tip{font-size:10px;color:var(--text-mid);font-family:var(--font-sans);line-height:1.7;padding:3px 0;border-bottom:1px solid var(--border);}
+.life-tip:last-child{border-bottom:none;}
+.life-tip::before{content:'→ ';color:var(--teal);}
+.intel-loading{padding:40px;text-align:center;}
+.intel-loading-spinner{width:28px;height:28px;border:2px solid var(--border-bright);border-top-color:var(--purple);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.intel-loading-text{font-size:11px;color:var(--text-dim);}
+.intel-loading-sub{font-size:9px;color:var(--border-bright);margin-top:5px;}
+.intel-empty{padding:40px 16px;text-align:center;border:1px dashed var(--border-bright);}
+.intel-empty-icon{font-size:28px;margin-bottom:10px;opacity:0.4;}
+.intel-empty-text{font-size:11px;color:var(--text-dim);}
+.intel-empty-hint{font-size:9px;color:var(--border-bright);margin-top:5px;line-height:1.6;}
+
+/* ALERTS */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);}
+.alert-form{background:var(--surface);border:1px solid var(--border);padding:14px;margin-bottom:16px;}
+.alert-form-title{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;}
+.alert-form-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+.alert-select,.alert-input{background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:var(--font-mono);font-size:11px;padding:7px 9px;outline:none;transition:border-color 0.2s;}
+.alert-select{cursor:pointer;}
+.alert-select:focus,.alert-input:focus{border-color:var(--accent);}
+.alert-input{width:120px;}
+.alert-input::placeholder{color:var(--text-dim);}
+.alert-form-label{font-size:9px;color:var(--text-dim);letter-spacing:0.08em;white-space:nowrap;}
+.alerts-list{display:flex;flex-direction:column;gap:7px;}
+.alert-card{background:var(--surface);border:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;animation:rowIn 0.25s ease forwards;opacity:0;flex-wrap:wrap;}
+.alert-card.triggered{border-color:var(--amber);background:var(--amber-dim);}
+.alert-card-sym{font-size:12px;font-weight:600;min-width:60px;}
+.alert-card-type{font-size:9px;padding:2px 7px;border:1px solid;letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;}
+.alert-card-type.above{border-color:var(--green);color:var(--green);}
+.alert-card-type.below{border-color:var(--red);color:var(--red);}
+.alert-card-price{font-size:13px;font-weight:500;}
+.alert-card-note{font-size:9px;color:var(--text-dim);flex:1;}
+.alert-triggered-badge{font-size:8px;letter-spacing:0.12em;padding:2px 7px;background:var(--amber);color:#000;font-weight:600;white-space:nowrap;}
+
+/* LOG */
+.log-list{display:flex;flex-direction:column;gap:3px;max-height:60vh;overflow-y:auto;}
+.log-entry{padding:7px 10px;background:var(--surface);border-left:2px solid var(--border-bright);display:flex;gap:10px;font-size:10px;animation:rowIn 0.2s ease forwards;opacity:0;}
+.log-entry.up{border-left-color:var(--green);}.log-entry.down{border-left-color:var(--red);}
+.log-entry.info{border-left-color:var(--accent);}.log-entry.warn{border-left-color:var(--amber);}
+.log-entry.intel{border-left-color:var(--purple);}
+.log-time{color:var(--text-dim);white-space:nowrap;flex-shrink:0;}
+.log-msg{color:var(--text-mid);flex:1;}
+.log-msg strong{color:var(--text);}
+
+/* TOAST */
+.toast-container{position:fixed;top:16px;right:16px;z-index:10000;display:flex;flex-direction:column;gap:7px;pointer-events:none;max-width:320px;}
+.toast{background:var(--surface2);border:1px solid var(--border-bright);padding:11px 14px;animation:toastIn 0.3s ease forwards;box-shadow:0 8px 32px rgba(0,0,0,0.6);pointer-events:all;}
+.toast.up{border-left:3px solid var(--green);}.toast.down{border-left:3px solid var(--red);}
+.toast.info{border-left:3px solid var(--accent);}.toast.warn{border-left:3px solid var(--amber);}
+.toast.intel{border-left:3px solid var(--purple);}
+@keyframes toastIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(16px)}}
+.toast-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
+.toast-title{font-size:10px;font-weight:600;letter-spacing:0.1em;}
+.toast-title.up{color:var(--green);}.toast-title.down{color:var(--red);}
+.toast-title.info{color:var(--accent);}.toast-title.warn{color:var(--amber);}
+.toast-title.intel{color:var(--purple);}
+.toast-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:0;line-height:1;}
+.toast-body{font-size:11px;color:var(--text-mid);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border-bright);padding:20px;width:100%;max-width:380px;animation:slideUp 0.2s ease;}
+@keyframes slideUp{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-size:12px;font-weight:600;letter-spacing:0.1em;margin-bottom:3px;}
+.modal-sub{font-size:9px;color:var(--text-dim);margin-bottom:16px;}
+.modal-field{margin-bottom:12px;}
+.modal-label{font-size:9px;color:var(--text-dim);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:5px;display:block;}
+.modal-input,.modal-select{width:100%;background:var(--bg);border:1px solid var(--border-bright);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:8px 10px;outline:none;transition:border-color 0.2s;}
+.modal-input:focus,.modal-select:focus{border-color:var(--accent);}
+.modal-actions{display:flex;gap:7px;margin-top:16px;justify-content:flex-end;}
+
+.empty-state{padding:36px 16px;text-align:center;color:var(--text-dim);border:1px dashed var(--border-bright);}
+.empty-icon{font-size:24px;margin-bottom:8px;opacity:0.4;}
+.empty-text{font-size:11px;letter-spacing:0.08em;}
+.empty-hint{font-size:9px;margin-top:4px;color:var(--border-bright);}
+
+/* STATUS BAR */
+.status-bar{padding:8px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:var(--bg);}
+.status-msg{font-size:9px;color:var(--text-dim);letter-spacing:0.06em;}
+.status-msg.error{color:var(--red);}.status-msg.success{color:var(--green);}
+.powered{font-size:8px;color:var(--green);letter-spacing:0.1em;}
+</style>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="modal-overlay hidden" id="alertModal">
+  <div class="modal">
+    <div class="modal-title">Set Price Alert</div>
+    <div class="modal-sub" id="alertModalSub">Configure alert</div>
+    <div class="modal-field">
+      <label class="modal-label">Alert Type</label>
+      <select class="modal-select" id="alertType">
+        <option value="above">Price rises ABOVE target ▲</option>
+        <option value="below">Price falls BELOW target ▼</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Target Price</label>
+      <input class="modal-input" id="alertPrice" type="number" step="0.01" placeholder="e.g. 35.50" />
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Note (optional)</label>
+      <input class="modal-input" id="alertNote" type="text" placeholder="e.g. Take profit" maxlength="60" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeAlertModal()">Cancel</button>
+      <button class="btn" onclick="saveAlert()">Set Alert</button>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALL BANNER -->
+<div id="installBanner" class="hidden">
+  <span class="install-text">📲 Install StockTerm — click to add as a desktop/home screen app</span>
+  <button class="btn" style="padding:5px 12px;font-size:9px" onclick="installApp()">Install</button>
+  <button class="btn secondary" style="padding:5px 8px;font-size:9px" onclick="document.getElementById('installBanner').classList.add('hidden')">✕</button>
+</div>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark">▲</div>
+    <div>
+      <div class="logo-text">STOCKTERM</div>
+      <div class="logo-sub">Market Intelligence</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-bottom:3px">
+      <span class="security-badge">🔒 Secure · No Proxies</span>
+    </div>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="date" id="date"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('watchlist',this)">Watchlist</button>
+  <button class="tab market-tab" onclick="switchTab('market',this)">◈ Live Market</button>
+  <button class="tab intel-tab" onclick="switchTab('intel',this)">⚡ Intelligence</button>
+  <button class="tab" onclick="switchTab('alerts',this)">Alerts <span class="tab-badge" id="alertBadge" style="display:none">0</span></button>
+  <button class="tab" onclick="switchTab('log',this)">Log</button>
+</div>
+
+<div class="main">
+
+  <!-- WATCHLIST -->
+  <div class="panel active" id="panel-watchlist">
+    <div id="notifBanner" class="banner warn">
+      <span class="banner-text">⚡ Enable desktop notifications to receive price alerts when minimised</span>
+      <button class="btn" style="padding:5px 12px;font-size:9px" onclick="requestNotifPermission()">Enable</button>
+    </div>
+    <div class="banner success">
+      <span class="banner-text">🔒 Secure mode — prices connect directly to Finnhub.io · No proxy services · No middlemen · ASX: use <strong>.AX</strong> suffix e.g. <strong>DHHF.AX</strong> · US: symbol only e.g. <strong>AAPL</strong></span>
+    </div>
+    <div class="add-bar">
+      <div class="input-wrap">
+        <span class="input-prefix">$</span>
+        <input class="ticker-input" id="tickerInput" type="text" placeholder="DHHF.AX · VAS.AX · NDQ.AX · BHP.AX · AAPL · TSLA" maxlength="12" />
+      </div>
+      <button class="btn" onclick="addTicker()">+ Add</button>
+      <button class="btn secondary" onclick="refreshAll()">↻ All</button>
+    </div>
+    <div class="refresh-bar">
+      <span class="refresh-label">Auto-refresh</span>
+      <select class="refresh-select" id="refreshInterval" onchange="setAutoRefresh()">
+        <option value="0">Off</option>
+        <option value="60">1 min</option>
+        <option value="300" selected>5 min</option>
+        <option value="600">10 min</option>
+        <option value="1800">30 min</option>
+      </select>
+      <span class="refresh-countdown" id="refreshCountdown"></span>
+      <span id="quotaDisplay" style="font-size:9px;color:var(--text-dim);margin-left:16px"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Symbol</th><th>Price</th><th>Change</th><th>% Chg</th>
+          <th>52w High</th><th>52w Low</th><th>Outlook</th><th>Alerts</th><th>Updated</th><th></th>
+        </tr></thead>
+        <tbody id="stockBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">◈</div>
+        <div class="empty-text">No stocks tracked yet</div>
+        <div class="empty-hint">Try DHHF.AX · VAS.AX · NDQ.AX · CBA.AX · BHP.AX · WES.AX · AAPL</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE MARKET -->
+  <div class="panel" id="panel-market">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.1em;color:var(--teal)">◈ Live Market Data</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px">Direct connections · Finnhub · CoinGecko · Frankfurter · No proxies</div>
+      </div>
+      <button class="btn teal-btn" onclick="refreshMarketData()">↻ Refresh</button>
+    </div>
+
+    <div class="market-section">
+      <div class="market-section-title">Market Sentiment <span class="market-section-time" id="fgTime"></span></div>
+      <div id="fgContainer"><div style="color:var(--text-dim);font-size:11px;padding:12px">Click Refresh to load</div></div>
+    </div>
+    <div class="market-section">
+      <div class="market-section-title">Commodities & Indices <span class="market-section-time" id="commodTime"></span></div>
+      <div class="market-grid" id="commodGrid"><div style="color:var(--text-dim);font-size:11px">Click Refresh to load</div></div>
+    </div>
+    <div class="market-section">
+      <div class="market-section-title">AUD Exchange Rates <span class="market-section-time" id="fxTime"></span></div>
+      <div class="market-grid" id="fxGrid"><div style="color:var(--text-dim);font-size:11px">Click Refresh to load</div></div>
+    </div>
+    <div class="market-section">
+      <div class="market-section-title">Crypto (AUD) <span class="market-section-time" id="cryptoTime"></span></div>
+      <div class="market-grid" id="cryptoGrid"><div style="color:var(--text-dim);font-size:11px">Click Refresh to load</div></div>
+    </div>
+  </div>
+
+  <!-- INTELLIGENCE -->
+  <div class="panel" id="panel-intel">
+    <div class="intel-header">
+      <div>
+        <div class="intel-title">⚡ Market Intelligence</div>
+        <div class="intel-subtitle">AI deep analysis · geopolitics · macro · sector trends · ASX · daily life impact</div>
+      </div>
+      <div class="intel-actions">
+        <span class="intel-last-run" id="intelLastRun"></span>
+        <button class="btn intel-btn" id="runIntelBtn" onclick="runIntelligence()">▶ Run Analysis</button>
+      </div>
+    </div>
+    <div class="api-key-hint">
+      ⚡ Intelligence uses Claude AI (Anthropic). Get a free key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> — your key is stored only on this device, never transmitted anywhere else.
+    </div>
+    <div class="api-key-row">
+      <input class="api-key-input" id="claudeKeyInput" type="password" placeholder="Paste Anthropic API key (sk-ant-...)" />
+      <button class="btn intel-btn" onclick="saveClaudeKey()">Save</button>
+      <button class="btn secondary" onclick="clearClaudeKey()">Clear</button>
+    </div>
+    <div id="intelContent">
+      <div class="intel-empty">
+        <div class="intel-empty-icon">🌐</div>
+        <div class="intel-empty-text">No analysis run yet</div>
+        <div class="intel-empty-hint">Add stocks · enter your Anthropic key · click Run Analysis<br>Auto-refreshes daily on app open</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="panel" id="panel-alerts">
+    <div class="alert-form">
+      <div class="alert-form-title">▸ New Alert</div>
+      <div class="alert-form-row">
+        <span class="alert-form-label">When</span>
+        <select class="alert-select" id="newAlertSym"><option value="">— ticker —</option></select>
+        <span class="alert-form-label">goes</span>
+        <select class="alert-select" id="newAlertType">
+          <option value="above">ABOVE ▲</option>
+          <option value="below">BELOW ▼</option>
+        </select>
+        <input class="alert-input" id="newAlertPrice" type="number" step="0.01" placeholder="Target price" />
+        <input class="alert-input" style="width:150px" id="newAlertNote" type="text" placeholder="Note (optional)" maxlength="60" />
+        <button class="btn" onclick="addAlertFromPanel()">+ Add</button>
+      </div>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Active &amp; Triggered Alerts</span>
+      <button class="btn danger" style="padding:5px 10px;font-size:9px" onclick="clearTriggeredAlerts()">Clear Triggered</button>
+    </div>
+    <div class="alerts-list" id="alertsList"></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="panel" id="panel-log">
+    <div class="section-header">
+      <span class="section-title">Activity Log</span>
+      <button class="btn secondary" style="padding:5px 10px;font-size:9px" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-list" id="logList"></div>
+  </div>
+
+</div>
+
+<div class="status-bar">
+  <div class="status-msg" id="statusMsg">Ready</div>
+  <div class="powered">🔒 Direct connections only · Finnhub · CoinGecko · Frankfurter · Anthropic</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIG — Finnhub API key embedded directly
+// ══════════════════════════════════════════════════════
+const FINNHUB_KEY = 'd6m9nkpr01qi0ajlect0d6m9nkpr01qi0ajlectg';
+const FINNHUB_BASE = 'https://finnhub.io/api/v1';
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let stocks={}, alerts=[], activityLog=[], intelData=null, intelRunAt=null, marketData={}, marketFetchedAt=null;
+let countdownTimer=null, countdownSecs=0, modalTarget=null;
+let deferredInstallPrompt=null;
+// Daily quota tracking (25 free calls/day on Finnhub free tier is actually 60/min — no daily limit, just rate limit)
+let callsToday=0, callsDate='';
+const STORAGE_KEY='stockterm_secure_v1';
+
+function loadState(){
+  try{
+    const d=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+    stocks=d.stocks||{}; alerts=d.alerts||[]; activityLog=d.log||[];
+    intelData=d.intelData||null; intelRunAt=d.intelRunAt||null;
+    marketData=d.marketData||{}; marketFetchedAt=d.marketFetchedAt||null;
+    if(d.claudeKey) document.getElementById('claudeKeyInput').value=d.claudeKey;
+  }catch(e){}
+}
+function saveState(){
+  try{
+    const claudeKey=document.getElementById('claudeKeyInput')?.value||'';
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({stocks,alerts,log:activityLog.slice(0,300),intelData,intelRunAt,marketData,marketFetchedAt,claudeKey}));
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════════
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('en-AU',{hour12:false});
+  document.getElementById('date').textContent=n.toLocaleDateString('en-AU',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+}
+setInterval(updateClock,1000); updateClock();
+
+// ══════════════════════════════════════════════════════
+// PWA INSTALL
+// ══════════════════════════════════════════════════════
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredInstallPrompt=e;
+  document.getElementById('installBanner').classList.remove('hidden');
+});
+function installApp(){
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(()=>{
+    deferredInstallPrompt=null;
+    document.getElementById('installBanner').classList.add('hidden');
+  });
+}
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('installBanner').classList.add('hidden');
+  showToast('info','Installed!','StockTerm is now installed on your device.');
+});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ══════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='market') renderMarketData();
+  if(name==='intel'&&intelData) renderIntelligence();
+}
+
+// ══════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════════════════
+function checkNotifBanner(){
+  if(typeof Notification==='undefined'||Notification.permission!=='default')
+    document.getElementById('notifBanner').classList.add('hidden');
+}
+function requestNotifPermission(){
+  Notification.requestPermission().then(p=>{
+    checkNotifBanner();
+    if(p==='granted'){addLog('info','Notifications enabled');showToast('info','Enabled','Desktop alerts are now active.');}
+  });
+}
+checkNotifBanner();
+function sendDesktopNotif(title,body){
+  if(typeof Notification==='undefined'||Notification.permission!=='granted') return;
+  try{const n=new Notification(title,{body,icon:'./icon-192.png'});setTimeout(()=>n.close(),9000);}catch(e){}
+}
+
+// ══════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════
+function showToast(type,title,body){
+  const c=document.getElementById('toastContainer');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  const icons={up:'▲ ',down:'▼ ',info:'ℹ ',warn:'⚡ ',intel:'⚡ '};
+  t.innerHTML=`<div class="toast-header"><span class="toast-title ${type}">${icons[type]||''}${title}</span><button class="toast-close" onclick="this.closest('.toast').remove()">✕</button></div><div class="toast-body">${body}</div>`;
+  c.appendChild(t);
+  setTimeout(()=>{t.style.animation='toastOut 0.3s ease forwards';setTimeout(()=>t.remove(),300);},6000);
+}
+
+// ══════════════════════════════════════════════════════
+// LOG
+// ══════════════════════════════════════════════════════
+function addLog(type,msg){
+  const ts=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  activityLog.unshift({type,msg,ts}); renderLog(); saveState();
+}
+function renderLog(){
+  const el=document.getElementById('logList');
+  if(!activityLog.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No activity yet</div></div>';return;}
+  el.innerHTML=activityLog.map((e,i)=>`<div class="log-entry ${e.type}" style="animation-delay:${i*0.02}s"><span class="log-time">${e.ts}</span><span class="log-msg">${e.msg}</span></div>`).join('');
+}
+function clearLog(){activityLog=[];renderLog();saveState();}
+
+// ══════════════════════════════════════════════════════
+// AUTO REFRESH
+// ══════════════════════════════════════════════════════
+function setAutoRefresh(){
+  clearInterval(countdownTimer);
+  const secs=parseInt(document.getElementById('refreshInterval').value);
+  const cd=document.getElementById('refreshCountdown');
+  if(!secs){cd.textContent='';return;}
+  countdownSecs=secs;
+  countdownTimer=setInterval(()=>{
+    countdownSecs--;
+    const m=Math.floor(countdownSecs/60),s=countdownSecs%60;
+    cd.innerHTML=`Next in <span>${m>0?m+'m ':''}${s}s</span>`;
+    if(countdownSecs<=0){countdownSecs=secs;refreshAll();}
+  },1000);
+}
+setAutoRefresh();
+
+// ══════════════════════════════════════════════════════
+// FINNHUB — DIRECT STOCK PRICE FETCH (no proxy)
+// ══════════════════════════════════════════════════════
+async function fetchStockData(symbol){
+  // Finnhub uses different format for ASX: strip .AX, add :ASX prefix
+  // e.g. DHHF.AX → DHHF:ASX, CBA.AX → CBA:ASX, AAPL stays AAPL
+  let fhSym = symbol;
+  let isAsx = symbol.endsWith('.AX');
+  if(isAsx){
+    fhSym = symbol.replace('.AX','') + ':ASX';
+  }
+
+  // Fetch quote and profile in parallel
+  const [quoteRes, profileRes] = await Promise.all([
+    fetch(`${FINNHUB_BASE}/quote?symbol=${encodeURIComponent(fhSym)}&token=${FINNHUB_KEY}`),
+    fetch(`${FINNHUB_BASE}/stock/profile2?symbol=${encodeURIComponent(fhSym)}&token=${FINNHUB_KEY}`)
+  ]);
+
+  if(!quoteRes.ok) throw new Error(`Finnhub error ${quoteRes.status}`);
+  const quote = await quoteRes.json();
+  const profile = profileRes.ok ? await profileRes.json() : {};
+
+  // c = current price, d = change, dp = change percent, h = high, l = low, pc = prev close
+  if(!quote.c || quote.c === 0) throw new Error('No price data — check ticker symbol');
+
+  // 52w high/low via separate endpoint
+  let high52=null, low52=null;
+  try{
+    const metricRes = await fetch(`${FINNHUB_BASE}/stock/metric?symbol=${encodeURIComponent(fhSym)}&metric=all&token=${FINNHUB_KEY}`);
+    if(metricRes.ok){
+      const metric = await metricRes.json();
+      high52 = metric?.metric?.['52WeekHigh'] ?? null;
+      low52  = metric?.metric?.['52WeekLow']  ?? null;
+    }
+  }catch(e){}
+
+  return {
+    symbol,
+    name: profile.name || symbol,
+    price: quote.c,
+    currency: isAsx ? 'AUD' : (profile.currency || 'USD'),
+    change: quote.d ?? 0,
+    changePercent: quote.dp ?? 0,
+    high52w: high52,
+    low52w: low52,
+    exchange: isAsx ? 'ASX' : (profile.exchange || ''),
+    marketCap: profile.marketCapitalization ? profile.marketCapitalization * 1e6 : null
+  };
+}
+
+// ══════════════════════════════════════════════════════
+// LIVE MARKET DATA — ALL DIRECT, NO PROXIES
+// ══════════════════════════════════════════════════════
+
+// Commodities & indices via Finnhub (direct)
+async function fetchFinnhubQuote(symbol){
+  try{
+    const r = await fetch(`${FINNHUB_BASE}/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_KEY}`);
+    if(!r.ok) return null;
+    const d = await r.json();
+    if(!d.c || d.c===0) return null;
+    return {price:d.c, change:d.d??0, changePct:d.dp??0};
+  }catch(e){return null;}
+}
+
+// FX via Frankfurter (direct CORS, no key needed)
+async function fetchFXRates(){
+  try{
+    const r=await fetch('https://api.frankfurter.app/latest?from=AUD&to=USD,EUR,GBP,JPY,CNY,SGD');
+    if(!r.ok) return null;
+    return (await r.json()).rates;
+  }catch(e){return null;}
+}
+
+// Crypto via CoinGecko (direct CORS, no key needed)
+async function fetchCrypto(){
+  try{
+    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,ripple&vs_currencies=aud&include_24hr_change=true');
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){return null;}
+}
+
+// Fear & Greed via alternative.me (direct CORS, no key needed)
+async function fetchFearGreed(){
+  try{
+    const r=await fetch('https://api.alternative.me/fng/?limit=1');
+    if(!r.ok) return null;
+    return (await r.json())?.data?.[0];
+  }catch(e){return null;}
+}
+
+async function refreshMarketData(){
+  setStatus('Refreshing market data...');
+  const now=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
+
+  // Show loading
+  ['commodGrid','fxGrid','cryptoGrid'].forEach(id=>{
+    document.getElementById(id).innerHTML='<div style="color:var(--text-dim);font-size:11px;padding:8px"><span class="skeleton" style="width:80px;display:inline-block"></span></div>';
+  });
+
+  // Fire all in parallel — all direct connections
+  const [gold, silver, oil, copper, natgas, asx200, sp500, nasdaq, vix, us10y, fxRates, crypto, fg] = await Promise.all([
+    fetchFinnhubQuote('OANDA:XAU_USD'),   // Gold
+    fetchFinnhubQuote('OANDA:XAG_USD'),   // Silver
+    fetchFinnhubQuote('OANDA:BCO_USD'),   // Oil Brent
+    fetchFinnhubQuote('OANDA:XCU_USD'),   // Copper
+    fetchFinnhubQuote('OANDA:NGAS_USD'),  // Natural Gas
+    fetchFinnhubQuote('^AXJO'),           // ASX 200
+    fetchFinnhubQuote('^GSPC'),           // S&P 500
+    fetchFinnhubQuote('^NDX'),            // Nasdaq
+    fetchFinnhubQuote('^VIX'),            // VIX
+    fetchFinnhubQuote('^TNX'),            // US 10yr
+    fetchFXRates(),
+    fetchCrypto(),
+    fetchFearGreed()
+  ]);
+
+  marketData={gold,silver,oil,copper,natgas,asx200,sp500,nasdaq,vix,us10y,fxRates,crypto,fg};
+  marketFetchedAt=Date.now(); saveState(); renderMarketData();
+  setStatus('Market data updated','success');
+  addLog('info','Live market data refreshed — all direct connections');
+  ['commodTime','fxTime','cryptoTime','fgTime'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=now; });
+}
+
+function mktCard(label,value,change,changePct,sub){
+  if(value===null||value===undefined) return `<div class="market-card"><div class="market-card-label">${label}</div><div class="market-card-value na">—</div><div class="market-card-sub">Unavailable</div></div>`;
+  const up=change>=0, cls=Math.abs(change)<0.0001?'flat':up?'up':'down', arrow=up?'▲':'▼';
+  return `<div class="market-card">
+    <div class="market-card-label">${label}</div>
+    <div class="market-card-value" style="color:${cls==='up'?'var(--green)':cls==='down'?'var(--red)':'var(--text)'}">${value}</div>
+    ${change!=null?`<div class="market-card-change ${cls}">${cls!=='flat'?arrow+' ':''}${Math.abs(changePct).toFixed(2)}%</div>`:''}
+    ${sub?`<div class="market-card-sub">${sub}</div>`:''}
+  </div>`;
+}
+
+function renderMarketData(){
+  const d=marketData;
+  if(!d||!Object.keys(d).length) return;
+
+  const fmt=(v,dec=2)=>v!=null?Number(v).toFixed(dec):null;
+
+  // Commodities & Indices
+  document.getElementById('commodGrid').innerHTML=[
+    mktCard('Gold',      d.gold   ?`$${fmt(d.gold.price,0)}`  :null, d.gold?.change,   d.gold?.changePct,   'USD/oz'),
+    mktCard('Silver',    d.silver ?`$${fmt(d.silver.price,2)}`:null, d.silver?.change, d.silver?.changePct, 'USD/oz'),
+    mktCard('Oil (Brent)',d.oil   ?`$${fmt(d.oil.price,2)}`   :null, d.oil?.change,    d.oil?.changePct,    'USD/bbl'),
+    mktCard('Copper',    d.copper ?`$${fmt(d.copper.price,4)}`:null, d.copper?.change, d.copper?.changePct, 'USD'),
+    mktCard('Nat Gas',   d.natgas ?`$${fmt(d.natgas.price,3)}`:null, d.natgas?.change, d.natgas?.changePct, 'USD/MMBtu'),
+    mktCard('ASX 200',   d.asx200 ?fmt(d.asx200.price,0)      :null, d.asx200?.change, d.asx200?.changePct, 'Points'),
+    mktCard('S&P 500',   d.sp500  ?fmt(d.sp500.price,0)       :null, d.sp500?.change,  d.sp500?.changePct,  'Points'),
+    mktCard('Nasdaq 100',d.nasdaq ?fmt(d.nasdaq.price,0)      :null, d.nasdaq?.change, d.nasdaq?.changePct, 'Points'),
+    mktCard('VIX',       d.vix    ?fmt(d.vix.price,2)         :null, d.vix?.change,    d.vix?.changePct,    '<25 calm · >30 fear'),
+    mktCard('US 10yr',   d.us10y  ?`${fmt(d.us10y.price,3)}%`:null, d.us10y?.change,  d.us10y?.changePct,  'Treasury yield'),
+  ].join('');
+
+  // FX
+  if(d.fxRates){
+    const fx=d.fxRates;
+    document.getElementById('fxGrid').innerHTML=[
+      mktCard('AUD / USD', fx.USD?fmt(fx.USD,4):null, 0,0,'Indicative'),
+      mktCard('AUD / EUR', fx.EUR?fmt(fx.EUR,4):null, 0,0,'Indicative'),
+      mktCard('AUD / GBP', fx.GBP?fmt(fx.GBP,4):null, 0,0,'Indicative'),
+      mktCard('AUD / JPY', fx.JPY?fmt(fx.JPY,2):null, 0,0,'Indicative'),
+      mktCard('AUD / CNY', fx.CNY?fmt(fx.CNY,4):null, 0,0,'Indicative'),
+      mktCard('AUD / SGD', fx.SGD?fmt(fx.SGD,4):null, 0,0,'Indicative'),
+    ].join('');
+  }
+
+  // Crypto
+  if(d.crypto){
+    const c=d.crypto;
+    const fmtAud=(v)=>v>=1000?`A$${(v/1000).toFixed(1)}k`:`A$${Number(v).toFixed(2)}`;
+    document.getElementById('cryptoGrid').innerHTML=[
+      c.bitcoin  ?mktCard('Bitcoin (BTC)',  fmtAud(c.bitcoin.aud),  c.bitcoin.aud_24h_change*c.bitcoin.aud/100,   c.bitcoin.aud_24h_change||0,  'AUD · 24h'):'',
+      c.ethereum ?mktCard('Ethereum (ETH)', fmtAud(c.ethereum.aud), c.ethereum.aud_24h_change*c.ethereum.aud/100, c.ethereum.aud_24h_change||0, 'AUD · 24h'):'',
+      c.solana   ?mktCard('Solana (SOL)',   fmtAud(c.solana.aud),   c.solana.aud_24h_change*c.solana.aud/100,     c.solana.aud_24h_change||0,   'AUD · 24h'):'',
+      c.ripple   ?mktCard('XRP',            fmtAud(c.ripple.aud),   c.ripple.aud_24h_change*c.ripple.aud/100,     c.ripple.aud_24h_change||0,   'AUD · 24h'):'',
+    ].join('');
+  }
+
+  // Fear & Greed
+  if(d.fg){
+    const score=parseInt(d.fg.value)||50;
+    const label=d.fg.value_classification||'Neutral';
+    const color=score>=60?'#00e676':score>=45?'#ffc107':score>=30?'#ff9800':'#ff3d57';
+    const r=28, circ=2*Math.PI*r;
+    document.getElementById('fgContainer').innerHTML=`
+    <div class="fg-card">
+      <div class="fg-gauge">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="${r}" fill="none" stroke="var(--border-bright)" stroke-width="5"/>
+          <circle cx="32" cy="32" r="${r}" fill="none" stroke="${color}" stroke-width="5"
+            stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-score/100)}" stroke-linecap="round"/>
+        </svg>
+        <div class="fg-score" style="color:${color}">${score}</div>
+      </div>
+      <div>
+        <div class="fg-label">Crypto Fear &amp; Greed Index</div>
+        <div class="fg-value" style="color:${color}">${label}</div>
+        <div class="fg-sub">Score: ${score}/100</div>
+        <div class="fg-sub" style="margin-top:4px;font-size:9px">0-24 Extreme Fear · 25-49 Fear · 50-74 Greed · 75+ Extreme Greed</div>
+      </div>
+    </div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// CLAUDE API KEY
+// ══════════════════════════════════════════════════════
+function saveClaudeKey(){
+  const k=document.getElementById('claudeKeyInput').value.trim();
+  if(!k.startsWith('sk-ant-')){showToast('warn','Invalid Key','Anthropic keys start with sk-ant-');return;}
+  saveState(); showToast('info','Key Saved','Stored locally on this device only.');
+  addLog('info','Anthropic API key saved');
+}
+function clearClaudeKey(){
+  document.getElementById('claudeKeyInput').value=''; saveState();
+  showToast('info','Key Cleared','API key removed.');
+}
+
+// ══════════════════════════════════════════════════════
+// INTELLIGENCE ENGINE
+// ══════════════════════════════════════════════════════
+async function runIntelligence(){
+  const claudeKey=document.getElementById('claudeKeyInput').value.trim();
+  if(!claudeKey){showToast('warn','No API Key','Enter your Anthropic key in the Intelligence tab.');return;}
+  const tickers=Object.keys(stocks).filter(s=>!stocks[s].loading&&!stocks[s].error);
+  if(!tickers.length){showToast('warn','No Stocks','Add stocks to your watchlist first.');return;}
+
+  const btn=document.getElementById('runIntelBtn');
+  btn.disabled=true; btn.textContent='⏳ Analysing...';
+  document.getElementById('intelContent').innerHTML=`<div class="intel-loading"><div class="intel-loading-spinner"></div><div class="intel-loading-text">Running deep market intelligence...</div><div class="intel-loading-sub">Searching geopolitics · RBA · commodities · sector news · ASX conditions</div></div>`;
+  setStatus('Running intelligence analysis...');
+  addLog('intel','Intelligence analysis started');
+
+  const portfolioList=tickers.map(s=>{
+    const d=stocks[s], curr=d.currency==='AUD'?'A$':'$';
+    return `${s} (${d.name||s}) — ${curr}${Number(d.price||0).toFixed(2)}`;
+  }).join('\n');
+
+  let mktCtx='';
+  if(marketData.gold)   mktCtx+=`Gold: $${Number(marketData.gold.price).toFixed(0)}/oz. `;
+  if(marketData.oil)    mktCtx+=`Oil: $${Number(marketData.oil.price).toFixed(2)}/bbl. `;
+  if(marketData.asx200) mktCtx+=`ASX 200: ${Number(marketData.asx200.price).toFixed(0)}. `;
+  if(marketData.fxRates?.USD) mktCtx+=`AUD/USD: ${Number(marketData.fxRates.USD).toFixed(4)}. `;
+  if(marketData.us10y)  mktCtx+=`US 10yr: ${Number(marketData.us10y.price).toFixed(3)}%. `;
+  if(marketData.vix)    mktCtx+=`VIX: ${Number(marketData.vix.price).toFixed(2)}. `;
+  if(marketData.fg)     mktCtx+=`Fear & Greed: ${marketData.fg.value} (${marketData.fg.value_classification}). `;
+
+  const today=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  try{
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:8000,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:`You are an elite financial analyst for an Australian retail investor based on the Sunshine Coast, QLD. Today is ${today}.
+
+LIVE MARKET DATA:
+${mktCtx||'(no live data loaded)'}
+
+WATCHLIST:
+${portfolioList}
+
+Search the web thoroughly for current events today. Cover geopolitics, RBA, Fed, commodities, ASX conditions, sector news. Cross-reference against each specific holding.
+
+Respond ONLY in valid JSON (no markdown, no backticks):
+{"runDate":"string","macro":{"geopolitical":"...","rba_rates":"...","global_rates":"...","commodities":"...","asx_conditions":"...","aud_usd":"..."},"holdings":[{"symbol":"TICKER","sentiment":"bullish|bearish|neutral","verdict":"BUY|HOLD|SELL|ACCUMULATE","confidence":"High|Medium|Low","geopolitical_impact":"...","macro_impact":"...","sector_news":"...","asx_impact":"...","reasoning":"...","risks":"...","opportunities":"...","life_tips":["tip1","tip2","tip3"]}],"overall_portfolio":"...","daily_life_actions":["action1","action2","action3","action4"]}`,
+        messages:[{role:'user',content:`Full intelligence analysis for my watchlist as of today, ${today}. I am an Australian investor on the Sunshine Coast. Search extensively, be specific and actionable.`}]
+      })
+    });
+
+    if(!response.ok){const e=await response.json();throw new Error(e?.error?.message||`API error ${response.status}`);}
+    const data=await response.json();
+    const txt=data.content.map(b=>b.type==='text'?b.text:'').join('');
+    const match=txt.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error('Invalid response format');
+    intelData=JSON.parse(match[0]); intelRunAt=Date.now(); saveState();
+    renderIntelligence();
+    addLog('intel',`Analysis complete — ${tickers.length} holdings analysed`);
+    showToast('intel','Analysis Ready',`Deep analysis complete for ${tickers.length} holding${tickers.length>1?'s':''}`);
+    setStatus('Intelligence analysis complete','success');
+  }catch(e){
+    document.getElementById('intelContent').innerHTML=`<div class="intel-empty"><div class="intel-empty-icon">⚠️</div><div class="intel-empty-text">Analysis failed</div><div class="intel-empty-hint">${e.message}<br>Check your Anthropic API key and internet connection.</div></div>`;
+    setStatus('Analysis failed — '+e.message,'error');
+    addLog('warn','Intelligence failed: '+e.message);
+  }
+  btn.disabled=false; btn.textContent='▶ Run Analysis';
+}
+
+function renderIntelligence(){
+  if(!intelData) return;
+  const runTime=intelRunAt?new Date(intelRunAt).toLocaleString('en-AU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+  document.getElementById('intelLastRun').innerHTML=`Last: <span>${runTime}</span>`;
+  const m=intelData.macro||{}, holdings=intelData.holdings||[];
+
+  const macroHtml=`<div class="macro-briefing">
+    <div class="macro-briefing-title">Global Macro Briefing</div>
+    <div class="macro-grid">
+      ${m.geopolitical?`<div class="macro-card"><div class="macro-card-label">🌍 Geopolitical</div><div class="macro-card-content">${m.geopolitical}</div></div>`:''}
+      ${m.rba_rates?`<div class="macro-card"><div class="macro-card-label">🏦 RBA & Rates</div><div class="macro-card-content">${m.rba_rates}</div></div>`:''}
+      ${m.global_rates?`<div class="macro-card"><div class="macro-card-label">🌐 Global Central Banks</div><div class="macro-card-content">${m.global_rates}</div></div>`:''}
+      ${m.commodities?`<div class="macro-card"><div class="macro-card-label">⛏️ Commodities</div><div class="macro-card-content">${m.commodities}</div></div>`:''}
+      ${m.asx_conditions?`<div class="macro-card"><div class="macro-card-label">📈 ASX Conditions</div><div class="macro-card-content">${m.asx_conditions}</div></div>`:''}
+      ${m.aud_usd?`<div class="macro-card"><div class="macro-card-label">💱 AUD/USD</div><div class="macro-card-content">${m.aud_usd}</div></div>`:''}
+    </div>
+    ${intelData.overall_portfolio?`<div style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--purple);font-size:11px;color:var(--text-mid);font-family:var(--font-sans);line-height:1.7;margin-bottom:12px"><strong style="color:var(--purple);font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;text-transform:uppercase;display:block;margin-bottom:5px">Portfolio Assessment</strong>${intelData.overall_portfolio}</div>`:''}
+    ${intelData.daily_life_actions?.length?`<div class="life-tips"><div class="life-tips-title">🏠 Daily Life Actions</div>${intelData.daily_life_actions.map(t=>`<div class="life-tip">${t}</div>`).join('')}</div>`:''}
+  </div>`;
+
+  const holdingCards=holdings.map((h,i)=>{
+    const s=stocks[h.symbol]||{}, curr=s.currency==='AUD'?'A$':'$';
+    const price=s.price?`${curr}${Number(s.price).toFixed(2)}`:'—';
+    const sentClass=h.sentiment||'neutral';
+    const sentLabel={bullish:'▲ Bullish',bearish:'▼ Bearish',neutral:'◆ Neutral'}[sentClass]||sentClass;
+    const verdictClass=(h.verdict||'hold').toLowerCase();
+    return `<div class="intel-card" style="animation-delay:${i*0.07}s" id="icard-${i}">
+      <div class="intel-card-header" onclick="toggleCard(${i})">
+        <span class="intel-card-sym">${h.symbol.replace('.AX','')}</span>
+        <span class="intel-card-name">${s.name||h.symbol}</span>
+        <span class="sentiment ${sentClass}" style="font-size:9px">${sentLabel}</span>
+        <span class="verdict-action ${verdictClass}" style="font-size:11px;margin-left:4px">${h.verdict||'HOLD'}</span>
+        <span style="font-size:11px;color:var(--text-mid);margin-left:4px">${price}</span>
+        <span class="intel-card-chevron">▼</span>
+      </div>
+      <div class="intel-card-body">
+        <div class="verdict-bar">
+          <span class="verdict-label">Verdict</span>
+          <span class="verdict-action ${verdictClass}">${h.verdict||'HOLD'}</span>
+          <span class="sentiment ${sentClass}" style="margin-left:6px;font-size:9px">${sentLabel}</span>
+          <span class="verdict-confidence">Confidence: ${h.confidence||'Medium'}</span>
+        </div>
+        ${h.reasoning?`<div class="intel-section"><div class="intel-section-title">📊 Full Reasoning</div><div class="intel-section-content">${h.reasoning}</div></div>`:''}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px">
+          ${h.geopolitical_impact?`<div class="intel-section" style="margin:0"><div class="intel-section-title">🌍 Geopolitical</div><div class="intel-section-content">${h.geopolitical_impact}</div></div>`:''}
+          ${h.macro_impact?`<div class="intel-section" style="margin:0"><div class="intel-section-title">🏦 Macro</div><div class="intel-section-content">${h.macro_impact}</div></div>`:''}
+          ${h.sector_news?`<div class="intel-section" style="margin:0"><div class="intel-section-title">📰 Sector</div><div class="intel-section-content">${h.sector_news}</div></div>`:''}
+          ${h.asx_impact?`<div class="intel-section" style="margin:0"><div class="intel-section-title">📈 ASX Impact</div><div class="intel-section-content">${h.asx_impact}</div></div>`:''}
+        </div>
+        <div class="opp-risk-grid">
+          ${h.opportunities?`<div class="opp-box"><div class="opp-box-title">▲ Opportunities</div><div class="opp-box-content">${h.opportunities}</div></div>`:''}
+          ${h.risks?`<div class="risk-box"><div class="risk-box-title">▼ Risks</div><div class="risk-box-content">${h.risks}</div></div>`:''}
+        </div>
+        ${h.life_tips?.length?`<div class="life-tips"><div class="life-tips-title">🏠 Daily Life Tips</div>${h.life_tips.map(t=>`<div class="life-tip">${t}</div>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  holdings.forEach(h=>{if(stocks[h.symbol]){stocks[h.symbol]._sentiment=h.sentiment;stocks[h.symbol]._verdict=h.verdict;}});
+  renderTable();
+  document.getElementById('intelContent').innerHTML=macroHtml+`<div class="intel-cards">${holdingCards}</div>`;
+}
+
+function toggleCard(i){document.getElementById('icard-'+i).classList.toggle('expanded');}
+
+function checkDailyIntel(){
+  if(!intelRunAt) return;
+  if(Date.now()-intelRunAt>24*60*60*1000){
+    const tickers=Object.keys(stocks).filter(s=>!stocks[s].loading&&!stocks[s].error);
+    const key=document.getElementById('claudeKeyInput').value.trim();
+    if(tickers.length>0&&key) setTimeout(()=>runIntelligence(),4000);
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// ALERT CHECKING
+// ══════════════════════════════════════════════════════
+function checkAlerts(sym,price,currency){
+  const curr=currency==='AUD'?'A$':'$';
+  let triggered=false;
+  alerts.forEach(a=>{
+    if(a.symbol!==sym||a.triggered) return;
+    const hit=(a.type==='above'&&price>=a.price)||(a.type==='below'&&price<=a.price);
+    if(hit){
+      a.triggered=true; a.triggeredAt=new Date().toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}); a.triggeredPrice=price;
+      const dir=a.type==='above'?'above':'below', type=a.type==='above'?'up':'down';
+      const body=`${sym} at ${curr}${price.toFixed(2)} — ${dir} target ${curr}${a.price.toFixed(2)}${a.note?' · '+a.note:''}`;
+      showToast(type,`${sym} ${type==='up'?'▲':'▼'} Alert`,body);
+      sendDesktopNotif(`StockTerm: ${sym} ${type==='up'?'▲':'▼'}`,body);
+      addLog(type,`<strong>${sym}</strong> hit ${dir} target ${curr}${a.price.toFixed(2)} — now ${curr}${price.toFixed(2)}${a.note?' · '+a.note:''}`);
+      triggered=true;
+    }
+  });
+  if(triggered){renderAlerts();updateAlertBadge();saveState();}
+}
+function updateAlertBadge(){
+  const n=alerts.filter(a=>a.triggered).length, b=document.getElementById('alertBadge');
+  if(n>0){b.style.display='inline-flex';b.textContent=n;}else b.style.display='none';
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER TABLE
+// ══════════════════════════════════════════════════════
+function renderTable(){
+  const body=document.getElementById('stockBody'), empty=document.getElementById('emptyState');
+  const keys=Object.keys(stocks);
+  if(!keys.length){body.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  body.innerHTML=keys.map((sym,i)=>{
+    const s=stocks[sym];
+    if(s.loading) return `<tr style="animation-delay:${i*0.05}s">
+      <td><div class="ticker-cell"><div><div class="ticker-sym">${sym.replace('.AX','')}</div><div class="ticker-name">Fetching via Finnhub...</div></div></div></td>
+      <td><span class="skeleton" style="width:60px"></span></td><td><span class="skeleton" style="width:50px"></span></td>
+      <td><span class="skeleton" style="width:50px"></span></td><td><span class="skeleton" style="width:60px"></span></td>
+      <td><span class="skeleton" style="width:60px"></span></td><td></td><td></td><td></td><td></td></tr>`;
+    if(s.error) return `<tr style="animation-delay:${i*0.05}s">
+      <td><div class="ticker-cell"><div><div class="ticker-sym">${sym.replace('.AX','')}</div><div class="ticker-name" style="color:var(--red)">${s.error}</div></div></div></td>
+      <td colspan="7" style="color:var(--text-dim);font-size:10px;text-align:left">ASX: use .AX suffix (e.g. DHHF.AX) · US: symbol only (e.g. AAPL)</td><td></td>
+      <td><div class="action-cell"><button class="icon-btn" onclick="refreshTicker('${sym}')">↻</button><button class="icon-btn" onclick="removeTicker('${sym}')">✕</button></div></td></tr>`;
+    const up=s.change>=0, cls=Math.abs(s.change)<0.001?'flat':up?'up':'down', arrow=up?'▲':'▼';
+    const fmt=(n,d=2)=>n!=null?Number(n).toFixed(d):'—';
+    const curr=s.currency==='AUD'?'A$':'$';
+    const exch=(s.exchange||'').toUpperCase(), isAsx=exch.includes('ASX')||sym.endsWith('.AX');
+    const timeStr=s.updatedAt?new Date(s.updatedAt).toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'}):'—';
+    const myAlerts=alerts.filter(a=>a.symbol===sym), activeCount=myAlerts.filter(a=>!a.triggered).length;
+    const sentClass=s._sentiment||'', sentLabel={bullish:'▲',bearish:'▼',neutral:'◆'}[sentClass]||'';
+    const outlookHtml=sentClass?`<span class="sentiment ${sentClass}" style="padding:2px 5px;font-size:8px">${sentLabel} ${s._verdict||sentClass}</span>`:`<span style="color:var(--border-bright);font-size:9px">—</span>`;
+    return `<tr style="animation-delay:${i*0.05}s">
+      <td><div class="ticker-cell">
+        <span class="exchange-badge ${isAsx?'asx':'us'}">${isAsx?'ASX':exch||'—'}</span>
+        <div><div class="ticker-sym">${sym.replace('.AX','')}</div><div class="ticker-name">${s.name||''}</div></div>
+      </div></td>
+      <td class="price-cell">${curr}${fmt(s.price)}</td>
+      <td><span class="change-cell ${cls}">${cls!=='flat'?arrow+' ':''}${curr}${fmt(Math.abs(s.change))}</span></td>
+      <td><span class="change-cell ${cls}">${cls!=='flat'?arrow+' ':''}${fmt(Math.abs(s.changePercent))}%</span></td>
+      <td style="color:var(--text-mid);font-size:11px">${curr}${fmt(s.high52w)}</td>
+      <td style="color:var(--text-mid);font-size:11px">${curr}${fmt(s.low52w)}</td>
+      <td>${outlookHtml}</td>
+      <td><span style="display:inline-flex;align-items:center"><span class="alert-dot ${activeCount>0?'active':''}"></span><span style="font-size:9px;color:${activeCount>0?'var(--amber)':'var(--border-bright)'}">${activeCount>0?activeCount:'—'}</span></span></td>
+      <td class="last-updated">${timeStr}</td>
+      <td><div class="action-cell">
+        <button class="icon-btn ${myAlerts.length?'alert-active':''}" onclick="openAlertModal('${sym}')" title="Alert">🔔</button>
+        <button class="icon-btn" onclick="refreshTicker('${sym}')" title="Refresh">↻</button>
+        <button class="icon-btn" onclick="removeTicker('${sym}')" title="Remove">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER ALERTS
+// ══════════════════════════════════════════════════════
+function renderAlerts(){
+  const el=document.getElementById('alertsList');
+  const tickers=Object.keys(stocks).filter(s=>!stocks[s].loading&&!stocks[s].error);
+  document.getElementById('newAlertSym').innerHTML='<option value="">— ticker —</option>'+tickers.map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(!alerts.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-text">No alerts set</div><div class="empty-hint">Use 🔔 on each watchlist row or the form above</div></div>';return;}
+  el.innerHTML=alerts.map((a,i)=>{
+    const s=stocks[a.symbol], curr=s?.currency==='AUD'?'A$':'$';
+    return `<div class="alert-card ${a.triggered?'triggered':''}" style="animation-delay:${i*0.04}s">
+      <span class="alert-card-sym">${a.symbol.replace('.AX','')}</span>
+      <span class="alert-card-type ${a.type}">${a.type==='above'?'▲ Above':'▼ Below'}</span>
+      <span class="alert-card-price">${curr}${Number(a.price).toFixed(2)}</span>
+      <span class="alert-card-note">${a.note||''}</span>
+      ${a.triggered?`<span class="alert-triggered-badge">✓ ${a.triggeredAt} @ ${curr}${Number(a.triggeredPrice).toFixed(2)}</span>`:`<span style="font-size:9px;color:var(--text-dim)">${s?.price?`Now: ${curr}${Number(s.price).toFixed(2)}`:'Pending'}</span>`}
+      <button class="icon-btn" onclick="removeAlert(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+function removeAlert(i){alerts.splice(i,1);renderAlerts();renderTable();updateAlertBadge();saveState();}
+function clearTriggeredAlerts(){alerts=alerts.filter(a=>!a.triggered);renderAlerts();renderTable();updateAlertBadge();saveState();}
+
+// ══════════════════════════════════════════════════════
+// ALERT MODAL
+// ══════════════════════════════════════════════════════
+function openAlertModal(sym){
+  modalTarget=sym; const s=stocks[sym], curr=s?.currency==='AUD'?'A$':'$';
+  document.getElementById('alertModalSub').textContent=`${sym}  ·  Now: ${curr}${s?.price?Number(s.price).toFixed(2):'—'}`;
+  document.getElementById('alertPrice').value=''; document.getElementById('alertNote').value='';
+  document.getElementById('alertModal').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('alertPrice').focus(),100);
+}
+function closeAlertModal(){document.getElementById('alertModal').classList.add('hidden');modalTarget=null;}
+function saveAlert(){
+  const type=document.getElementById('alertType').value, price=parseFloat(document.getElementById('alertPrice').value), note=document.getElementById('alertNote').value.trim();
+  if(!modalTarget||isNaN(price)||price<=0){setStatus('Enter a valid price','error');return;}
+  alerts.push({symbol:modalTarget,type,price,note,triggered:false,createdAt:Date.now()});
+  addLog('info',`Alert set: <strong>${modalTarget}</strong> ${type==='above'?'▲ above':'▼ below'} $${price.toFixed(2)}${note?' — '+note:''}`);
+  closeAlertModal(); renderAlerts(); renderTable(); updateAlertBadge(); saveState();
+  setStatus(`Alert set for ${modalTarget}`,'success');
+}
+function addAlertFromPanel(){
+  const sym=document.getElementById('newAlertSym').value, type=document.getElementById('newAlertType').value;
+  const price=parseFloat(document.getElementById('newAlertPrice').value), note=document.getElementById('newAlertNote').value.trim();
+  if(!sym){setStatus('Select a ticker','error');return;}
+  if(isNaN(price)||price<=0){setStatus('Enter a valid price','error');return;}
+  alerts.push({symbol:sym,type,price,note,triggered:false,createdAt:Date.now()});
+  document.getElementById('newAlertPrice').value=''; document.getElementById('newAlertNote').value='';
+  addLog('info',`Alert set: <strong>${sym}</strong> ${type==='above'?'▲ above':'▼ below'} $${price.toFixed(2)}${note?' — '+note:''}`);
+  renderAlerts(); renderTable(); updateAlertBadge(); saveState();
+  setStatus(`Alert set for ${sym}`,'success');
+}
+
+// ══════════════════════════════════════════════════════
+// TICKER OPS
+// ══════════════════════════════════════════════════════
+async function addTicker(){
+  const input=document.getElementById('tickerInput');
+  const sym=input.value.trim().toUpperCase().replace(/\s/g,'');
+  if(!sym) return;
+  if(stocks[sym]){setStatus(`${sym} already in watchlist`,'error');return;}
+  input.value=''; stocks[sym]={loading:true}; saveState(); renderTable();
+  setStatus(`Fetching ${sym} from Finnhub...`);
+  try{
+    const data=await fetchStockData(sym);
+    stocks[sym]={...data,updatedAt:Date.now()};
+    const curr=data.currency==='AUD'?'A$':'$';
+    setStatus(`${sym} added`,'success');
+    addLog('info',`Added <strong>${sym}</strong> — ${data.name} at ${curr}${Number(data.price).toFixed(2)}`);
+    checkAlerts(sym,data.price,data.currency);
+  }catch(e){
+    stocks[sym]={error:e.message||'Fetch failed'};
+    setStatus(`Could not fetch ${sym} — ${e.message}`,'error');
+    addLog('warn',`Failed to add <strong>${sym}</strong>: ${e.message}`);
+  }
+  saveState(); renderTable(); renderAlerts();
+}
+
+async function refreshTicker(sym){
+  const prev=stocks[sym], prevPrice=prev?.price;
+  stocks[sym]={...prev,loading:true}; renderTable();
+  try{
+    const data=await fetchStockData(sym);
+    stocks[sym]={...prev,...data,updatedAt:Date.now()};
+    const curr=data.currency==='AUD'?'A$':'$';
+    if(prevPrice!=null){
+      const diff=data.price-prevPrice, type=diff>0?'up':diff<0?'down':'info';
+      if(Math.abs(diff)>0.001) addLog(type,`<strong>${sym}</strong>: ${curr}${Number(data.price).toFixed(2)} (${diff>0?'+':''}${diff.toFixed(2)})`);
+    }
+    setStatus(`${sym} updated`,'success');
+    checkAlerts(sym,data.price,data.currency);
+  }catch(e){
+    stocks[sym]=prev||{error:e.message};
+    setStatus(`Failed to refresh ${sym}`,'error');
+  }
+  saveState(); renderTable(); renderAlerts();
+}
+
+async function refreshAll(){
+  const syms=Object.keys(stocks); if(!syms.length) return;
+  setStatus(`Refreshing ${syms.length} stocks...`);
+  await Promise.all(syms.map(s=>refreshTicker(s)));
+  setStatus('All updated','success');
+}
+
+function removeTicker(sym){
+  delete stocks[sym]; alerts=alerts.filter(a=>a.symbol!==sym);
+  saveState(); renderTable(); renderAlerts(); updateAlertBadge();
+  addLog('info',`Removed <strong>${sym}</strong>`); setStatus(`${sym} removed`);
+}
+
+function setStatus(msg,type=''){
+  const el=document.getElementById('statusMsg');
+  el.textContent=msg; el.className='status-msg'+(type?' '+type:'');
+}
+
+// ══════════════════════════════════════════════════════
+// KEYBOARD
+// ══════════════════════════════════════════════════════
+document.getElementById('tickerInput').addEventListener('keydown',e=>{if(e.key==='Enter')addTicker();});
+document.getElementById('alertPrice').addEventListener('keydown',e=>{if(e.key==='Enter')saveAlert();});
+document.getElementById('alertModal').addEventListener('click',e=>{if(e.target===document.getElementById('alertModal'))closeAlertModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAlertModal();});
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+loadState();
+renderTable(); renderAlerts(); renderLog(); updateAlertBadge();
+if(intelData) renderIntelligence();
+const stale=Object.keys(stocks).filter(s=>!stocks[s].loading);
+if(stale.length) setTimeout(()=>{setStatus('Refreshing...');refreshAll();},800);
+checkDailyIntel();
+const mktAge=marketFetchedAt?Date.now()-marketFetchedAt:Infinity;
+if(mktAge>60*60*1000) setTimeout(()=>refreshMarketData(),2000);
+else if(marketData&&Object.keys(marketData).length) setTimeout(()=>renderMarketData(),500);
+</script>
+</body>
+</html>
